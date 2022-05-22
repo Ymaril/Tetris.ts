@@ -15,7 +15,7 @@ export class GameWorld {
     private _updateEveryXFrames: number;
     private _frame: number;
     private _movingShape: Shape = null;
-    private _shapesQueue: Shape[] = [];
+    private _shapeTypesQueue: ShapeType[] = [];
     private _score: number;
     private _gameOver : boolean;
     private _shapeFactory: ShapeFactory;
@@ -88,16 +88,14 @@ export class GameWorld {
         if(toMoveX !== 0){
             
             const reachedBorder = this._movingShape.cells.some(cell => {
-                const nextX = cell.X + toMoveX;
-                const partOfShape = this._movingShape.isPartOfShape(cell.addX(toMoveX));
+                const nextX = cell.coords.X + toMoveX;
+                const partOfShape = this._movingShape.isPartOfShape(cell.coords.addX(toMoveX));
                 return nextX < 0 || nextX === this._map.width ||
-                    (this._map.isCellFilled(nextX, cell.Y) && !partOfShape);
+                    (this._map.isCellFilled(nextX, cell.coords.Y) && !partOfShape);
             });
 
             if(!reachedBorder) {
-                this._map.clearShape(this._movingShape);
-                this._movingShape.move(toMoveX, 0);
-                this._map.colorShape(this._movingShape);
+                this._map.moveShape(this._movingShape, toMoveX, 0);
             }
         }
     }
@@ -111,8 +109,8 @@ export class GameWorld {
         let newShape = [];
 
         for(let cell of this._movingShape.cells) {
-            let x = cell.X - this._movingShape.origin.X;
-            let y = cell.Y - this._movingShape.origin.Y;
+            let x = cell.coords.X - this._movingShape.origin.X;
+            let y = cell.coords.Y - this._movingShape.origin.Y;
             let newX = -y;
             let newY = x;
 
@@ -127,25 +125,21 @@ export class GameWorld {
         });
 
         if(possibleRotation) {
-            this._map.clearShape(this._movingShape);
-            this._movingShape.cells = newShape;
-            this._map.colorShape(this._movingShape);
+            this._map.rotateShape(this._movingShape);
         }
     }
 
     private lowerShape(): boolean {
         
         const reachedBottom = this._movingShape.cells.some(cell => {
-            const nextY: number = cell.Y + 1;
-            const partOfShape = this._movingShape.isPartOfShape(cell.addY(1));
+            const nextY: number = cell.coords.Y + 1;
+            const partOfShape = this._movingShape.isPartOfShape(cell.coords.addY(1));
             return nextY === this._map.height ||
-                   (this._map.isCellFilled(cell.X, nextY) && !partOfShape);
+                   (this._map.isCellFilled(cell.coords.X, nextY) && !partOfShape);
         });
 
         if(!reachedBottom) {
-            this._map.clearShape(this._movingShape);
-            this._movingShape.move(0, 1);
-            this._map.colorShape(this._movingShape);
+            this._map.moveShape(this._movingShape, 0, 1);
         }
 
         return reachedBottom;
@@ -168,12 +162,18 @@ export class GameWorld {
         return this._map.anyFilledOnRow(0);
     } 
 
-    private generateRandomShape(): Shape {
+    private generateRandomShapeType(): ShapeType {
+        const index = Math.floor(Math.random() * this._shapeTypes.length);
+        
+        return this._shapeTypes[index];
+    }
+
+    private buildShape(type: ShapeType): Shape {
         const randomShapeTypeIndex = Math.floor(Math.random() * this._shapeTypes.length);
         let shapeColor = GAME_CONFIG.SHAPE_COLORS[randomShapeTypeIndex];
         
         return this._shapeFactory.createShape(
-                    this._shapeTypes[randomShapeTypeIndex], 
+                    type, 
                     new Vector2(Math.floor(this._map.width / 2), -3),
                     shapeColor
                 );
@@ -188,21 +188,21 @@ export class GameWorld {
                 GAME_CONFIG.NEXT_SHAPE_LABEL_POSITION.ALIGNMENT
             );
         
-        for(let i = this._shapesQueue.length - 1; i >= 0; i--){
-            let shape = this._shapesQueue[i];
-            let indexFromEnd = this._shapesQueue.length - 1 - i;
+        for(let i = this._shapeTypesQueue.length - 1; i >= 0; i--){
+            let shapeType = this._shapeTypesQueue[i];
+            let indexFromEnd = this._shapeTypesQueue.length - 1 - i;
             let demoShape = this._shapeFactory.createShape(
-                    shape.shapeType, 
+                    shapeType, 
                     new Vector2(
                         GAME_CONFIG.NEXT_SHAPE_POSITION.X + indexFromEnd * 4 * GAME_CONFIG.NEXT_SHAPE_CELL_SIZE, 
-                        GAME_CONFIG.NEXT_SHAPE_POSITION.Y), 
-                    shape.color,
+                        GAME_CONFIG.NEXT_SHAPE_POSITION.Y),
+                    GAME_CONFIG.SHAPE_COLORS[shapeType],
                     GAME_CONFIG.NEXT_SHAPE_CELL_SIZE
                 );
 
             demoShape.cells.forEach(cell => 
                 canvas2D.drawRect(
-                        cell, 
+                        cell.coords, 
                         demoShape.color, 
                         GAME_CONFIG.STROKE_COLOR, 
                         GAME_CONFIG.NEXT_SHAPE_CELL_SIZE,
@@ -230,9 +230,11 @@ export class GameWorld {
         this._frame = 0; 
         this._updateEveryXFrames = GAME_CONFIG.UPDATE_AFTER_X_FRAMES;
         this._map.init();
-        const newShape: Shape = this.generateRandomShape();
-        this._shapesQueue = [newShape];
-        this._movingShape = this.generateRandomShape();
+        const newShapeType: ShapeType = this.generateRandomShapeType();
+        this._shapeTypesQueue = [newShapeType];
+        this._movingShape = this.buildShape(this.generateRandomShapeType());
+
+        this._map.addShape(this._movingShape);
     }
 
     public update(): void {
@@ -245,9 +247,9 @@ export class GameWorld {
             this.handleFilledLines();
             this._gameOver = this.checkForGameOver();
             if(!this._gameOver){
-                let newShape: Shape = this.generateRandomShape();
-                this._shapesQueue.unshift(newShape);
-                this._movingShape = this._shapesQueue.pop();
+                let newShapeType: ShapeType = this.generateRandomShapeType();
+                this._shapeTypesQueue.unshift(newShapeType);
+                this._movingShape = this.buildShape(this._shapeTypesQueue.pop());
             }
         }
     }

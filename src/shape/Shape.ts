@@ -1,25 +1,22 @@
 import { ShapeType } from './ShapeType';
 import { Vector2 } from './../geom/Vector2';
+import { Cell } from '../map/Cell';
 
 export class Shape {
 
     //------Members------//
 
-    private _cells: Vector2[] = [];
+    private _cells: Cell[] = [];
     private _color: string = '';
     private _origin: Vector2 = null;
-    private _shapeType: ShapeType;
+    private _fixed: boolean = false;
 
     //------Properties------//
-    
-    public get shapeType() : ShapeType {
-        return this._shapeType;
-    }
-    
-    public get cells() : Vector2[] {
+
+    public get cells() : Cell[] {
         return this._cells;
     }
-    public set cells(cells : Vector2[]) {
+    public set cells(cells : Cell[]) {
         this._cells = cells;
     }
 
@@ -33,24 +30,55 @@ export class Shape {
 
     //------Constructor------//
     
-    constructor(shapeType: ShapeType, cells: Vector2[], origin: Vector2, color: string) {
-        this._shapeType = shapeType;
+    constructor(cells: Cell[], origin: Vector2, color: string) {
         this._cells = cells;
+        this._cells.forEach(cell => cell.shape = this)
+        this._origin = origin;
         this._color = color;
         this._origin = origin;
     }
 
     //------Public Methods------//
 
+    public rotate() {
+        if(!this._fixed) {
+            this._cells.forEach(cell => {
+                let x = cell.coords.X - this._origin.X;
+                let y = cell.coords.Y - this._origin.Y;
+                let newX = -y;
+                let newY = x;
+
+                cell.coords = new Vector2(this._origin.X + newX, this._origin.Y + newY);
+            });
+        }
+    }
+
+    public removeCell(cell: Cell) {
+        const index = this._cells.indexOf(cell, 0);
+
+        if (index > -1) {
+            this._cells.splice(index, 1);
+        }
+    }
+
+    public fix() : boolean {
+        return this._fixed = true;
+    }
+    public get isFixed() : boolean {
+        return this._fixed;
+    }
+
     public isPartOfShape(cell: Vector2) {
-        return this._cells.some(shapeCell => shapeCell.X === cell.X && shapeCell.Y === cell.Y);
+        return this._cells.some(shapeCell => shapeCell.coords.X === cell.X && shapeCell.coords.Y === cell.Y);
     }
 
     public move(x: number = 0, y: number = 0) {
-        if(this._origin){
-            this._origin.addToX(x).addToY(y);
+        if(!this._fixed) {
+            if(this._origin){
+                this._origin.addToX(x).addToY(y);
+            }
+            
+            this.cells.forEach(cell => cell.coords.addToX(x).addToY(y));
         }
-        
-        this.cells.forEach(cell => cell.addToX(x).addToY(y));
     }
 }
