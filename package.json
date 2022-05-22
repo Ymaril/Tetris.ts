@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npx webpack",
-    "serve": "npx webpack serve"
+    "watch": "npx webpack --watch",
+    "start": "npm run watch & npx webpack serve"
   },
   "keywords": [],
   "author": "",

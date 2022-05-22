@@ -18,3 +18,13 @@
 <img width="300" src="https://i.ibb.co/DVLbXJw/Screen-Shot-2019-02-02-at-12-50-24.png">
 <img width="300" src="https://i.ibb.co/Ks01fdj/Screen-Shot-2019-02-02-at-12-51-12.png">
 
+
+## Development
+
+To run webserver with watch code changes:
+```
+npm install
+npm run start
+```
+
+Then go to http://localhost:9000/
