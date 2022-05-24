@@ -1,11 +1,12 @@
 import { GAME_CONFIG } from './game.config';
 import { keyboard } from './input/Keyboard';
 import { Vector2 } from './geom/Vector2';
-import { canvas2D } from './Canvas';
 import { Shape } from './shape/Shape';
 import { ShapeType } from './shape/ShapeType';
 import { GameMap } from './map/GameMap';
 import { ShapeFactory } from './shape/ShapeFactory';
+import { SVGContext } from './SVG';
+import { Cell } from './shape/Cell';
 
 export class GameWorld {
 
@@ -14,11 +15,11 @@ export class GameWorld {
     private _map: GameMap;
     private _updateEveryXFrames: number;
     private _frame: number;
-    private _movingShape: Shape = null;
     private _shapeTypesQueue: ShapeType[] = [];
     private _score: number;
     private _gameOver : boolean;
     private _shapeFactory: ShapeFactory;
+    private _movingShape: Shape = null;
 
     private _shapeTypes: ShapeType[] = [
         ShapeType.I,
@@ -45,6 +46,21 @@ export class GameWorld {
     constructor(width: number, height: number) {
         this._shapeFactory = new ShapeFactory();
         this._map = new GameMap(width, height);
+        this._map.on('newShape', (shape: Shape) => {
+            SVGContext.drawShape(shape, GAME_CONFIG.CELL_SIZE);
+        });
+        this._map.on('moveShape', (shape: Shape) => {
+            SVGContext.updateShape(shape, GAME_CONFIG.CELL_SIZE);
+        });
+        this._map.on('rotateShape', (shape: Shape) => {
+            SVGContext.redrawShape(shape, GAME_CONFIG.CELL_SIZE);
+        });
+        this._map.on('changeShape', (shape: Shape) => {
+            SVGContext.redrawShape(shape, GAME_CONFIG.CELL_SIZE);
+        });
+        this._map.on('destroyShape', (shape: Shape) => {
+            SVGContext.destroyShape(shape);
+        });
         this.init();
     }
 
@@ -88,10 +104,11 @@ export class GameWorld {
         if(toMoveX !== 0){
             
             const reachedBorder = this._movingShape.cells.some(cell => {
-                const nextX = cell.coords.X + toMoveX;
-                const partOfShape = this._movingShape.isPartOfShape(cell.coords.addX(toMoveX));
-                return nextX < 0 || nextX === this._map.width ||
-                    (this._map.isCellFilled(nextX, cell.coords.Y) && !partOfShape);
+                const newPos = cell.position.addX(toMoveX);
+
+                const collisionCell = this._map.getCell(newPos);
+
+                return newPos.X < 0 || newPos.X === this._map.width || collisionCell && !this._movingShape.isPartOfShape(collisionCell);
             });
 
             if(!reachedBorder) {
@@ -101,27 +118,13 @@ export class GameWorld {
     }
 
     private rotateShape(): void {
+        const propableShape = this._movingShape.clone();
+        propableShape.rotate();
 
-        if(!this._movingShape.origin){
-            return;
-        }
+        let possibleRotation = propableShape.cells.every(cell => {
+            const collisionCell = this._map.getCell(cell.position);
 
-        let newShape = [];
-
-        for(let cell of this._movingShape.cells) {
-            let x = cell.coords.X - this._movingShape.origin.X;
-            let y = cell.coords.Y - this._movingShape.origin.Y;
-            let newX = -y;
-            let newY = x;
-
-            let newCell = this._movingShape.origin.addX(newX).addY(newY);
-            newShape.push(newCell);
-        }
-
-        let possibleRotation = newShape.every(cell => {
-            const partOfShape = this._movingShape.isPartOfShape(cell);
-            return this._map.isInMap(cell.X, cell.Y) &&
-                (!this._map.isCellFilled(cell.X, cell.Y) || partOfShape);
+            return this._map.isInMap(cell.position) && (!collisionCell || collisionCell && this._movingShape.isPartOfShape(collisionCell));
         });
 
         if(possibleRotation) {
@@ -132,10 +135,11 @@ export class GameWorld {
     private lowerShape(): boolean {
         
         const reachedBottom = this._movingShape.cells.some(cell => {
-            const nextY: number = cell.coords.Y + 1;
-            const partOfShape = this._movingShape.isPartOfShape(cell.coords.addY(1));
-            return nextY === this._map.height ||
-                   (this._map.isCellFilled(cell.coords.X, nextY) && !partOfShape);
+            const newPos = cell.position.addY(1);
+
+            const collisionCell = this._map.getCell(newPos);
+            
+            return newPos.Y === this._map.height || (collisionCell && !this._movingShape.isPartOfShape(collisionCell));
         });
 
         if(!reachedBottom) {
@@ -179,48 +183,48 @@ export class GameWorld {
                 );
     }
 
-    private drawShapesInQueue(): void {
-        canvas2D.drawText(
-                GAME_CONFIG.NEXT_SHAPE_LABEL, 
-                GAME_CONFIG.NEXT_SHAPE_LABEL_FONT, 
-                GAME_CONFIG.FONT_COLOR, 
-                GAME_CONFIG.NEXT_SHAPE_LABEL_POSITION,
-                GAME_CONFIG.NEXT_SHAPE_LABEL_POSITION.ALIGNMENT
-            );
+    // private drawShapesInQueue(): void {
+    //     canvas2D.drawText(
+    //             GAME_CONFIG.NEXT_SHAPE_LABEL, 
+    //             GAME_CONFIG.NEXT_SHAPE_LABEL_FONT, 
+    //             GAME_CONFIG.FONT_COLOR, 
+    //             GAME_CONFIG.NEXT_SHAPE_LABEL_POSITION,
+    //             GAME_CONFIG.NEXT_SHAPE_LABEL_POSITION.ALIGNMENT
+    //         );
         
-        for(let i = this._shapeTypesQueue.length - 1; i >= 0; i--){
-            let shapeType = this._shapeTypesQueue[i];
-            let indexFromEnd = this._shapeTypesQueue.length - 1 - i;
-            let demoShape = this._shapeFactory.createShape(
-                    shapeType, 
-                    new Vector2(
-                        GAME_CONFIG.NEXT_SHAPE_POSITION.X + indexFromEnd * 4 * GAME_CONFIG.NEXT_SHAPE_CELL_SIZE, 
-                        GAME_CONFIG.NEXT_SHAPE_POSITION.Y),
-                    GAME_CONFIG.SHAPE_COLORS[shapeType],
-                    GAME_CONFIG.NEXT_SHAPE_CELL_SIZE
-                );
+    //     for(let i = this._shapeTypesQueue.length - 1; i >= 0; i--){
+    //         let shapeType = this._shapeTypesQueue[i];
+    //         let indexFromEnd = this._shapeTypesQueue.length - 1 - i;
+    //         let demoShape = this._shapeFactory.createShape(
+    //                 shapeType, 
+    //                 new Vector2(
+    //                     GAME_CONFIG.NEXT_SHAPE_POSITION.X + indexFromEnd * 4 * GAME_CONFIG.NEXT_SHAPE_CELL_SIZE, 
+    //                     GAME_CONFIG.NEXT_SHAPE_POSITION.Y),
+    //                 GAME_CONFIG.SHAPE_COLORS[shapeType],
+    //                 GAME_CONFIG.NEXT_SHAPE_CELL_SIZE
+    //             );
 
-            demoShape.cells.forEach(cell => 
-                canvas2D.drawRect(
-                        cell.coords, 
-                        demoShape.color, 
-                        GAME_CONFIG.STROKE_COLOR, 
-                        GAME_CONFIG.NEXT_SHAPE_CELL_SIZE,
-                        GAME_CONFIG.NEXT_SHAPE_CELL_SIZE
-                    )
-                );
-        }
-    }
+    //         demoShape.cells.forEach(cell => 
+    //             canvas2D.drawRect(
+    //                     cell.coords, 
+    //                     demoShape.color, 
+    //                     GAME_CONFIG.STROKE_COLOR, 
+    //                     GAME_CONFIG.NEXT_SHAPE_CELL_SIZE,
+    //                     GAME_CONFIG.NEXT_SHAPE_CELL_SIZE
+    //                 )
+    //             );
+    //     }
+    // }
 
-    private drawScore(): void {
-        canvas2D.drawText(
-                GAME_CONFIG.SCORE_LABEL + this._score.toString(), 
-                GAME_CONFIG.SCORE_LABEL_FONT, 
-                GAME_CONFIG.FONT_COLOR, 
-                GAME_CONFIG.SCORE_LABEL_POSITION,
-                GAME_CONFIG.SCORE_LABEL_POSITION.ALIGNMENT
-            );
-    }
+    // private drawScore(): void {
+    //     canvas2D.drawText(
+    //             GAME_CONFIG.SCORE_LABEL + this._score.toString(), 
+    //             GAME_CONFIG.SCORE_LABEL_FONT, 
+    //             GAME_CONFIG.FONT_COLOR, 
+    //             GAME_CONFIG.SCORE_LABEL_POSITION,
+    //             GAME_CONFIG.SCORE_LABEL_POSITION.ALIGNMENT
+    //         );
+    // }
 
     //------Public Methods------//
 
@@ -250,13 +254,13 @@ export class GameWorld {
                 let newShapeType: ShapeType = this.generateRandomShapeType();
                 this._shapeTypesQueue.unshift(newShapeType);
                 this._movingShape = this.buildShape(this._shapeTypesQueue.pop());
+                this._map.addShape(this._movingShape);
             }
         }
     }
 
     public draw(): void {
-        this._map.draw();
-        this.drawScore();
-        this.drawShapesInQueue();
+        // this.drawScore();
+        // this.drawShapesInQueue();
     }
 }

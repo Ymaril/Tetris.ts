@@ -1,9 +1,9 @@
 import { Shape } from './../shape/Shape';
-import { Cell } from "./Cell";
-import { canvas2D } from "../Canvas";
-import { GAME_CONFIG } from "../game.config";
+import { Cell } from "../shape/Cell";
+import events = require('events');
+import { Vector2 } from '../geom/Vector2';
 
-export class GameMap {
+export class GameMap extends events.EventEmitter {
 
     //------Members------//
 
@@ -25,7 +25,8 @@ export class GameMap {
     //------Constructor------//
 
     constructor(width: number, height: number) {
-        this._map = [];
+        super();
+        this.init();
         this._width = width;
         this._height = height;
     }
@@ -33,6 +34,8 @@ export class GameMap {
     //------Public Methods------//
 
     public init(): void{
+        this._map = [];
+        
         for(let i: number = 0 ; i < this._height ; i++ ){
             this._map[i] = [];
 
@@ -44,35 +47,46 @@ export class GameMap {
 
     public addShape(shape: Shape) {
         this._shapes.push(shape);
+        this.emit('newShape', shape);
         this.cacheShapeCells(shape);
     }
 
-    public isInMap(x: number, y: number) {
+    public isInMap(coords: Vector2) {
+        const [x, y] = [coords.X, coords.Y];
+
         return x >= 0 && x < this._width && y >= 0 && y < this._height;
     }
 
-    public isCellFilled(x: number, y: number): boolean {
-        return this.isInMap(x,y) && typeof this._map[y][x] !== 'undefined';
+    public getCell(coords: Vector2) : Cell {
+        if(this.isInMap(coords) && typeof this._map[coords.Y][coords.X] !== 'undefined') {
+            return this._map[coords.Y][coords.X];
+        }
+    }
+
+    public isCellFilled(coords: Vector2): boolean {
+        return !!this.getCell(coords);
     }
 
     public moveShape(shape: Shape, x_diff: number, y_diff: number) {
         this.clearShapeCache(shape);
         shape.move(x_diff, y_diff);
         this.cacheShapeCells(shape);
+
+        this.emit('moveShape', shape);
     }
 
     private clearShapeCache(shape: Shape) {
         shape.cells.forEach(cell => {
-            if(this.isInMap(cell.coords.X, cell.coords.Y)) { 
-                this._map[cell.coords.Y][cell.coords.X] = undefined
+            if(this.isInMap(cell.position)) { 
+                this._map[cell.Y][cell.X] = undefined
             }
         });
     }
 
     private cacheShapeCells(shape: Shape) {
         shape.cells.forEach(cell => {
-            if(this.isInMap(cell.coords.X, cell.coords.Y)) { 
-                this._map[cell.coords.Y][cell.coords.X] = cell
+            if(this.isInMap(cell.position)) { 
+                this._map[cell.Y][cell.X] = cell
             }
         });
     }
@@ -91,11 +105,25 @@ export class GameMap {
             if(filledLine) {
                 filledLinesCount++;
                 this._map[i].forEach(cell => {
-                    cell.destroy()
-                    if(cell.shape.cells.length === 0) {
-                        this.removeShape(cell.shape)
+                    const cellShape = this._shapes.find(shape => shape.cells.includes(cell));
+                    cellShape.removeCell(cell);
+                    this.emit('changeShape', cellShape);
+                    
+                    if(cellShape.cells.length === 0) {
+                        this.removeShape(cellShape)
+                        this.emit('destroyShape', cellShape);
                     }
                 });
+
+                for(let line = 0; line < i; line++) {
+                    this._map[line].forEach(cell => {
+                        if(cell) { 
+                            cell.coords.addToY(1);
+                            this.emit('changeShape', cell.shape);
+                        }
+                    });
+                }
+
                 this._map.splice(i,1);
                 let newRow: undefined[] = [];
                 for(let j = 0; j < this._width; j++) {
@@ -112,6 +140,7 @@ export class GameMap {
         this.clearShapeCache(shape);
         shape.rotate();
         this.cacheShapeCells(shape);
+        this.emit('rotateShape', shape);
     }
 
     public removeShape(shape: Shape) {
@@ -120,17 +149,6 @@ export class GameMap {
         if (index > -1) {
             this.clearShapeCache(shape);
             this._shapes.splice(index, 1);
-        }
-    }
-
-    public draw(): void {
-        for(let i = 0 ; i < this._map.length ; i++){
-            for(let j = 0 ; j < this._map[i].length ; j++){
-                const cell: Cell = this._map[i][j];
-                if(typeof cell !== 'undefined'){
-                    canvas2D.drawRectAtCell(i, j, cell.shape.color, GAME_CONFIG.STROKE_COLOR, GAME_CONFIG.CELL_SIZE);
-                }
-            }
         }
     }
 }

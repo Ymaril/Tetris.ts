@@ -1,6 +1,5 @@
-import { ShapeType } from './ShapeType';
 import { Vector2 } from './../geom/Vector2';
-import { Cell } from '../map/Cell';
+import { Cell } from './Cell';
 
 export class Shape {
 
@@ -8,8 +7,8 @@ export class Shape {
 
     private _cells: Cell[] = [];
     private _color: string = '';
+    private _position: Vector2 = null;
     private _origin: Vector2 = null;
-    private _fixed: boolean = false;
 
     //------Properties------//
 
@@ -20,20 +19,23 @@ export class Shape {
         this._cells = cells;
     }
 
-    public get origin() : Vector2 {
-        return this._origin;
+    public get position() : Vector2 {
+        return this._position;
     }
     
     public get color() : string {
         return this._color;
     }
+    public get origin() : Vector2 {
+        return this._origin;
+    }
 
     //------Constructor------//
     
-    constructor(cells: Cell[], origin: Vector2, color: string) {
+    constructor(cells: Cell[], position: Vector2, color: string, origin: Vector2 = new Vector2(0.5, 0.5)) {
         this._cells = cells;
-        this._cells.forEach(cell => cell.shape = this)
-        this._origin = origin;
+        this._cells.forEach(cell => cell.shape = this);
+        this._position = position;
         this._color = color;
         this._origin = origin;
     }
@@ -41,16 +43,15 @@ export class Shape {
     //------Public Methods------//
 
     public rotate() {
-        if(!this._fixed) {
-            this._cells.forEach(cell => {
-                let x = cell.coords.X - this._origin.X;
-                let y = cell.coords.Y - this._origin.Y;
-                let newX = -y;
-                let newY = x;
+        this._cells.forEach(cell => {
+            const x = cell.coords.X;
+            const y = cell.coords.Y;
 
-                cell.coords = new Vector2(this._origin.X + newX, this._origin.Y + newY);
-            });
-        }
+            let newX = (y + this._origin.X - this._origin.Y);
+            let newY = (this._origin.X + this._origin.Y - x - 1);
+
+            cell.coords = new Vector2(newX, newY);
+        });
     }
 
     public removeCell(cell: Cell) {
@@ -61,24 +62,17 @@ export class Shape {
         }
     }
 
-    public fix() : boolean {
-        return this._fixed = true;
-    }
-    public get isFixed() : boolean {
-        return this._fixed;
+    public isPartOfShape(cell: Cell) {
+        return this._cells.includes(cell);
     }
 
-    public isPartOfShape(cell: Vector2) {
-        return this._cells.some(shapeCell => shapeCell.coords.X === cell.X && shapeCell.coords.Y === cell.Y);
+    public clone(): Shape {
+        const newCells = this._cells.map(cell => new Cell(cell.coords));
+        
+        return new Shape(newCells, this._position, this._color, this._origin); 
     }
 
     public move(x: number = 0, y: number = 0) {
-        if(!this._fixed) {
-            if(this._origin){
-                this._origin.addToX(x).addToY(y);
-            }
-            
-            this.cells.forEach(cell => cell.coords.addToX(x).addToY(y));
-        }
+        this._position.addToX(x).addToY(y);
     }
 }

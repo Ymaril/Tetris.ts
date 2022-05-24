@@ -2,8 +2,13 @@ body {
     margin: 3px;
     background-color: #19232D;
 }
-canvas {
-    width: 100%;
+#game {
     height: 100%;
-
+}
+#container {
+    height: 600px;
+}
+svg, rect {
+    overflow: auto;
+    transition: all 1s ease-out;
 }
