@@ -37,13 +37,15 @@ class SVG {
             group.appendChild(rect);
         });
 
-        const origin = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        origin.setAttribute("cx", (shape.origin.X * cellSize).toString());
-        origin.setAttribute("cy", (shape.origin.Y * cellSize).toString());
-        origin.setAttribute("r", '5');
-        origin.setAttribute("fill", '#FFFFFF');
+        if(GAME_CONFIG.SHOW_ORIGINS) {
+            const origin = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            origin.setAttribute("cx", (shape.origin.X * cellSize).toString());
+            origin.setAttribute("cy", (shape.origin.Y * cellSize).toString());
+            origin.setAttribute("r", '5');
+            origin.setAttribute("fill", '#FFFFFF');
 
-        group.appendChild(origin);
+            group.appendChild(origin);
+        }
 
         group.setAttribute("x", (shape.position.X * cellSize).toString());
         group.setAttribute("y", (shape.position.Y * cellSize).toString());
@@ -88,13 +90,15 @@ class SVG {
                 group.appendChild(rect);
             });
 
-            const origin = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            origin.setAttribute("cx", (shape.origin.X * cellSize).toString());
-            origin.setAttribute("cy", (shape.origin.Y * cellSize).toString());
-            origin.setAttribute("r", '5');
-            origin.setAttribute("fill", '#FFFFFF');
-    
-            group.appendChild(origin);
+            if(GAME_CONFIG.SHOW_ORIGINS) {
+                const origin = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                origin.setAttribute("cx", (shape.origin.X * cellSize).toString());
+                origin.setAttribute("cy", (shape.origin.Y * cellSize).toString());
+                origin.setAttribute("r", '5');
+                origin.setAttribute("fill", '#FFFFFF');
+        
+                group.appendChild(origin);
+            }
 
             group.setAttribute("x", (shape.position.X * cellSize).toString());
             group.setAttribute("y", (shape.position.Y * cellSize).toString());

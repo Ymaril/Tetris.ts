@@ -1,4 +1,6 @@
 export const GAME_CONFIG : any = {
+    // CONFIGS
+    SHOW_ORIGINS: false,
 
     // PHYSICS
     UPDATE_AFTER_X_FRAMES: 40,
