@@ -1,6 +1,6 @@
 # Tetris.ts
 
-*A simple Tetris game written in TypeScript.*
+*A simple Tetris game written in TypeScript with using SVG.*
 
 ## Keys
 * **Spacebar** : Start game.
@@ -11,7 +11,7 @@
 * **Enter** : Drop shape.
 
 ## Demo
-[Play here!](https://henshmi.github.io/Tetris.ts/dist/)
+[Play here!](https://ymaril.github.io/Tetris.ts/)
 
 
 <img width="300" src="https://i.ibb.co/hm91jYX/Screen-Shot-2019-02-02-at-12-48-04.png">
