@@ -6,7 +6,6 @@ import { ShapeType } from './shape/ShapeType';
 import { GameMap } from './map/GameMap';
 import { ShapeFactory } from './shape/ShapeFactory';
 import { SVGContext } from './SVG';
-import { Cell } from './shape/Cell';
 
 export class GameWorld {
 
@@ -49,7 +48,13 @@ export class GameWorld {
         this._map.on('newShape', (shape: Shape) => {
             SVGContext.drawShape(shape, GAME_CONFIG.CELL_SIZE);
         });
-        this._map.on('moveShape', (shape: Shape) => {
+        this._map.on('leftShape', (shape: Shape) => {
+            SVGContext.updateShape(shape, GAME_CONFIG.CELL_SIZE);
+        });
+        this._map.on('rightShape', (shape: Shape) => {
+            SVGContext.updateShape(shape, GAME_CONFIG.CELL_SIZE);
+        });
+        this._map.on('downShape', (shape: Shape) => {
             SVGContext.updateShape(shape, GAME_CONFIG.CELL_SIZE);
         });
         this._map.on('rotateShape', (shape: Shape) => {
@@ -70,83 +75,20 @@ export class GameWorld {
         this._score += toAdd;
     }
 
-    private dropShape(): number {
-        let numOfCells = 0;
-        
-        while(!this.lowerShape()){
-            numOfCells++;
-        }
-        return numOfCells;
-    }
-
     private handleInput(): void {
-
-        let toMoveX = 0;
-
-        if(keyboard.isPressed(GAME_CONFIG.DROP)) {
-            let cellsDropped = this.dropShape();
-            this.increaseScore(cellsDropped * GAME_CONFIG.DROPPED_SHAPE_BONUS);
-        }
-        else if(keyboard.isPressed(GAME_CONFIG.UP_KEY)) {
-            this.rotateShape();
+        if(keyboard.isPressed(GAME_CONFIG.UP_KEY)) {
+            this._map.doShapeAction(this._movingShape, 'rotate');
         }
         else if (keyboard.isPressed(GAME_CONFIG.DOWN_KEY)) {
-            this.lowerShape();
+            this._map.doShapeAction(this._movingShape, 'down');
             this.increaseScore(GAME_CONFIG.LOWERED_SHAPE_BONUS);
         }
         else if (keyboard.isPressed(GAME_CONFIG.LEFT_KEY)) {
-            toMoveX = -1;
+            this._map.doShapeAction(this._movingShape, 'left');
         }
         else if (keyboard.isPressed(GAME_CONFIG.RIGHT_KEY)) {
-            toMoveX = 1;
+            this._map.doShapeAction(this._movingShape, 'right');
         }
-
-        if(toMoveX !== 0){
-            
-            const reachedBorder = this._movingShape.cells.some(cell => {
-                const newPos = cell.position.addX(toMoveX);
-
-                const collisionCell = this._map.getCell(newPos);
-
-                return newPos.X < 0 || newPos.X === this._map.width || collisionCell && !this._movingShape.isPartOfShape(collisionCell);
-            });
-
-            if(!reachedBorder) {
-                this._map.moveShape(this._movingShape, toMoveX, 0);
-            }
-        }
-    }
-
-    private rotateShape(): void {
-        const propableShape = this._movingShape.clone();
-        propableShape.rotate();
-
-        let possibleRotation = propableShape.cells.every(cell => {
-            const collisionCell = this._map.getCell(cell.position);
-
-            return this._map.isInMap(cell.position) && (!collisionCell || collisionCell && this._movingShape.isPartOfShape(collisionCell));
-        });
-
-        if(possibleRotation) {
-            this._map.rotateShape(this._movingShape);
-        }
-    }
-
-    private lowerShape(): boolean {
-        
-        const reachedBottom = this._movingShape.cells.some(cell => {
-            const newPos = cell.position.addY(1);
-
-            const collisionCell = this._map.getCell(newPos);
-            
-            return newPos.Y === this._map.height || (collisionCell && !this._movingShape.isPartOfShape(collisionCell));
-        });
-
-        if(!reachedBottom) {
-            this._map.moveShape(this._movingShape, 0, 1);
-        }
-
-        return reachedBottom;
     }
 
     private handleFilledLines(): void {
@@ -162,10 +104,6 @@ export class GameWorld {
         }
     }
 
-    private checkForGameOver(): boolean {
-        return this._map.anyFilledOnRow(0);
-    } 
-
     private generateRandomShapeType(): ShapeType {
         const index = Math.floor(Math.random() * this._shapeTypes.length);
         
@@ -178,7 +116,7 @@ export class GameWorld {
         
         return this._shapeFactory.createShape(
                     type, 
-                    new Vector2(Math.floor(this._map.width / 2), -3),
+                    new Vector2(Math.floor(this._map.width / 2), 3),
                     shapeColor
                 );
     }
@@ -246,16 +184,14 @@ export class GameWorld {
         if(++this._frame % this._updateEveryXFrames) {
             return;
         }
-        const reachedBottom = this.lowerShape();
-        if(reachedBottom) {
+        if(!this._map.doShapeAction(this._movingShape, 'down')) {
             this.handleFilledLines();
-            this._gameOver = this.checkForGameOver();
-            if(!this._gameOver){
-                let newShapeType: ShapeType = this.generateRandomShapeType();
-                this._shapeTypesQueue.unshift(newShapeType);
-                this._movingShape = this.buildShape(this._shapeTypesQueue.pop());
-                this._map.addShape(this._movingShape);
-            }
+
+            const newShapeType: ShapeType = this.generateRandomShapeType();
+            this._shapeTypesQueue.unshift(newShapeType);
+            this._movingShape = this.buildShape(this._shapeTypesQueue.pop());
+            
+            this._gameOver = !this._map.addShape(this._movingShape);
         }
     }
 

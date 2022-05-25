@@ -26,9 +26,9 @@ export class GameMap extends events.EventEmitter {
 
     constructor(width: number, height: number) {
         super();
-        this.init();
         this._width = width;
         this._height = height;
+        this.init();
     }
 
     //------Public Methods------//
@@ -45,10 +45,41 @@ export class GameMap extends events.EventEmitter {
         }
     }
 
-    public addShape(shape: Shape) {
+    public addShape(shape: Shape): boolean {
+        if(!this.isShapeValidPlace(shape)) { return false; }
+
         this._shapes.push(shape);
         this.emit('newShape', shape);
         this.cacheShapeCells(shape);
+        
+        return true;
+    }
+
+    public doShapeAction(shape: Shape, actionName: string) {
+        const propableShape = shape.clone();
+        propableShape.do(actionName);
+
+        if(this.isShapeValidPlace(propableShape, shape)) {
+            this.clearShapeCache(shape);
+            shape.do(actionName);
+            this.cacheShapeCells(shape);
+    
+            this.emit(`${actionName}Shape`, shape);
+            
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    public removeShape(shape: Shape) {
+        const index = this._shapes.indexOf(shape, 0);
+
+        if (index > -1) {
+            this.clearShapeCache(shape);
+            this._shapes.splice(index, 1);
+        }
     }
 
     public isInMap(coords: Vector2) {
@@ -65,14 +96,6 @@ export class GameMap extends events.EventEmitter {
 
     public isCellFilled(coords: Vector2): boolean {
         return !!this.getCell(coords);
-    }
-
-    public moveShape(shape: Shape, x_diff: number, y_diff: number) {
-        this.clearShapeCache(shape);
-        shape.move(x_diff, y_diff);
-        this.cacheShapeCells(shape);
-
-        this.emit('moveShape', shape);
     }
 
     private clearShapeCache(shape: Shape) {
@@ -95,6 +118,24 @@ export class GameMap extends events.EventEmitter {
         return this._map[row].some(cell => typeof cell !== 'undefined');
     }
 
+    private isShapeValidPlace(shape: Shape, ignoreShape?: Shape): boolean {
+        return shape.cells.every(cell => {
+            if(!this.isInMap(cell.position)) { return false; }
+
+            const collisionCell = this.getCell(cell.position);
+
+            if(collisionCell) {
+                if(ignoreShape) {
+                    return ignoreShape.isPartOfShape(collisionCell);
+                } else {
+                    return false;
+                }
+            } else {
+                return true;
+            }
+        });
+    }
+
     public removeFilledLines(): number {
             
         let filledLinesCount = 0;
@@ -107,11 +148,12 @@ export class GameMap extends events.EventEmitter {
                 this._map[i].forEach(cell => {
                     const cellShape = this._shapes.find(shape => shape.cells.includes(cell));
                     cellShape.removeCell(cell);
-                    this.emit('changeShape', cellShape);
                     
                     if(cellShape.cells.length === 0) {
                         this.removeShape(cellShape)
                         this.emit('destroyShape', cellShape);
+                    } else {
+                        this.emit('changeShape', cellShape);
                     }
                 });
 
@@ -134,21 +176,5 @@ export class GameMap extends events.EventEmitter {
         }
 
         return filledLinesCount;
-    }
-
-    public rotateShape(shape: Shape) {
-        this.clearShapeCache(shape);
-        shape.rotate();
-        this.cacheShapeCells(shape);
-        this.emit('rotateShape', shape);
-    }
-
-    public removeShape(shape: Shape) {
-        const index = this._shapes.indexOf(shape, 0);
-
-        if (index > -1) {
-            this.clearShapeCache(shape);
-            this._shapes.splice(index, 1);
-        }
     }
 }
