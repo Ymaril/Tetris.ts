@@ -7,7 +7,7 @@ export class ShapeFactory {
 
     //------Public Methods------//
 
-    public createShape(shapeType: ShapeType, position: Vector2, color: string): Shape {
+    public createShape(shapeType: ShapeType, position: Vector2, color: number): Shape {
         let shapeCells: Cell[] = [];
         let origin: Vector2;
 

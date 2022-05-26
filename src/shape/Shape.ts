@@ -57,7 +57,7 @@ export class Shape {
     //------Members------//
 
     private _cells: Cell[] = [];
-    private _color: string = '';
+    private _color: number = 0;
     private _position: Vector2 = null;
     private _origin: Vector2 = null;
     private _actions: IShapeAction[] = [
@@ -80,7 +80,7 @@ export class Shape {
         return this._position;
     }
     
-    public get color() : string {
+    public get color() : number {
         return this._color;
     }
     public get origin() : Vector2 {
@@ -89,7 +89,7 @@ export class Shape {
 
     //------Constructor------//
     
-    constructor(cells: Cell[], position: Vector2, color: string, origin: Vector2 = new Vector2(0.5, 0.5)) {
+    constructor(cells: Cell[], position: Vector2, color: number, origin: Vector2 = new Vector2(0.5, 0.5)) {
         this._cells = cells;
         this._cells.forEach(cell => cell.shape = this);
         this._position = position;

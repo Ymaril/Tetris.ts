@@ -111,13 +111,13 @@ export class GameWorld {
     }
 
     private buildShape(type: ShapeType): Shape {
-        const randomShapeTypeIndex = Math.floor(Math.random() * this._shapeTypes.length);
+        const randomShapeTypeIndex = Math.floor(Math.random() * 7);
         let shapeColor = GAME_CONFIG.SHAPE_COLORS[randomShapeTypeIndex];
         
         return this._shapeFactory.createShape(
                     type, 
                     new Vector2(Math.floor(this._map.width / 2), 3),
-                    shapeColor
+                    randomShapeTypeIndex
                 );
     }
 
