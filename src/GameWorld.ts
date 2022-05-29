@@ -47,23 +47,24 @@ export class GameWorld {
         this._map = new GameMap(width, height);
         this._map.on('newShape', (shape: Shape) => {
             SVGContext.drawShape(shape, GAME_CONFIG.CELL_SIZE);
+
+            shape.on('left', () => {
+                SVGContext.updateShape(shape, GAME_CONFIG.CELL_SIZE);
+            });
+            shape.on('right', () => {
+                SVGContext.updateShape(shape, GAME_CONFIG.CELL_SIZE);
+            });
+            shape.on('down', () => {
+                SVGContext.updateShape(shape, GAME_CONFIG.CELL_SIZE);
+            });
+            shape.on('rotate', () => {
+                SVGContext.redrawShape(shape, GAME_CONFIG.CELL_SIZE);
+            });
+            shape.on('change', () => {
+                SVGContext.redrawShape(shape, GAME_CONFIG.CELL_SIZE);
+            });
         });
-        this._map.on('leftShape', (shape: Shape) => {
-            SVGContext.updateShape(shape, GAME_CONFIG.CELL_SIZE);
-        });
-        this._map.on('rightShape', (shape: Shape) => {
-            SVGContext.updateShape(shape, GAME_CONFIG.CELL_SIZE);
-        });
-        this._map.on('downShape', (shape: Shape) => {
-            SVGContext.updateShape(shape, GAME_CONFIG.CELL_SIZE);
-        });
-        this._map.on('rotateShape', (shape: Shape) => {
-            SVGContext.redrawShape(shape, GAME_CONFIG.CELL_SIZE);
-        });
-        this._map.on('changeShape', (shape: Shape) => {
-            SVGContext.redrawShape(shape, GAME_CONFIG.CELL_SIZE);
-        });
-        this._map.on('destroyShape', (shape: Shape) => {
+        this._map.on('removeShape', (shape: Shape) => {
             SVGContext.destroyShape(shape);
         });
         this.init();

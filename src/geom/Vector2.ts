@@ -47,9 +47,9 @@ export class Vector2 {
         return this;
     }
 
-    public add(x : number, y: number): Vector2{
-        this.addToX(x);
-        this.addToY(y);
+    public add(vector: Vector2): Vector2{
+        this.addToX(vector.X);
+        this.addToY(vector.Y);
         return this;
     }
 }

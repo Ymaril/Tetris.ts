@@ -49,6 +49,7 @@ export class GameMap extends events.EventEmitter {
         if(!this.isShapeValidPlace(shape)) { return false; }
 
         this._shapes.push(shape);
+        shape.on('empty', () => this.removeShape(shape));
         this.emit('newShape', shape);
         this.cacheShapeCells(shape);
         
@@ -63,8 +64,6 @@ export class GameMap extends events.EventEmitter {
             this.clearShapeCache(shape);
             shape.do(actionName);
             this.cacheShapeCells(shape);
-    
-            this.emit(`${actionName}Shape`, shape);
             
             return true;
         }
@@ -79,6 +78,7 @@ export class GameMap extends events.EventEmitter {
         if (index > -1) {
             this.clearShapeCache(shape);
             this._shapes.splice(index, 1);
+            this.emit('removeShape', shape);
         }
     }
 
@@ -114,10 +114,6 @@ export class GameMap extends events.EventEmitter {
         });
     }
 
-    public anyFilledOnRow(row: number) {
-        return this._map[row].some(cell => typeof cell !== 'undefined');
-    }
-
     private isShapeValidPlace(shape: Shape, ignoreShape?: Shape): boolean {
         return shape.cells.every(cell => {
             if(!this.isInMap(cell.position)) { return false; }
@@ -137,7 +133,6 @@ export class GameMap extends events.EventEmitter {
     }
 
     public removeFilledLines(): number {
-            
         let filledLinesCount = 0;
 
         for (let i = 0 ; i < this._map.length ; i++) {
@@ -145,36 +140,32 @@ export class GameMap extends events.EventEmitter {
 
             if(filledLine) {
                 filledLinesCount++;
-                this._map[i].forEach(cell => {
-                    const cellShape = this._shapes.find(shape => shape.cells.includes(cell));
-                    cellShape.removeCell(cell);
-                    
-                    if(cellShape.cells.length === 0) {
-                        this.removeShape(cellShape)
-                        this.emit('destroyShape', cellShape);
-                    } else {
-                        this.emit('changeShape', cellShape);
-                    }
-                });
-
-                for(let line = 0; line < i; line++) {
-                    this._map[line].forEach(cell => {
-                        if(cell) { 
-                            cell.coords.addToY(1);
-                            this.emit('changeShape', cell.shape);
-                        }
-                    });
-                }
-
-                this._map.splice(i,1);
-                let newRow: undefined[] = [];
-                for(let j = 0; j < this._width; j++) {
-                    newRow[j] = undefined;
-                }
-                this._map.unshift(newRow);
+                this.removeLine(i);
             }
         }
 
         return filledLinesCount;
+    }
+
+    private removeLine(i: number) {
+        this._map[i].forEach(cell => {
+            const cellShape = this._shapes.find(shape => shape.isPartOfShape(cell));
+            cellShape.removeCell(cell);
+        });
+
+        for(let line = 0; line < i; line++) {
+            this._map[line].forEach(cell => {
+                if(cell) { 
+                    cell.move(new Vector2(0, 1));
+                }
+            });
+        }
+
+        this._map.splice(i,1);
+        let newRow: undefined[] = [];
+        for(let j = 0; j < this._width; j++) {
+            newRow[j] = undefined;
+        }
+        this._map.unshift(newRow);
     }
 }

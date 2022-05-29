@@ -1,7 +1,8 @@
+import events = require("events");
 import { Vector2 } from "../geom/Vector2";
 import { Shape } from "../shape/Shape";
 
-export class Cell {
+export class Cell extends events.EventEmitter {
 
     //------Members------//
 
@@ -28,6 +29,7 @@ export class Cell {
     //------Constructor------//
 
     constructor(coords: Vector2, shape?: Shape) {
+        super();
         this._shape = shape;
         this._coords = coords;
     }
@@ -44,5 +46,10 @@ export class Cell {
 
     public get Y() {
         return this._shape.position.Y + this._coords.Y;
+    }
+
+    public move(diff: Vector2) {
+        this._coords.add(diff);
+        this.emit('move');
     }
 }

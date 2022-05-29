@@ -1,3 +1,4 @@
+import events = require('events');
 import { Vector2 } from './../geom/Vector2';
 import { Cell } from './Cell';
 
@@ -52,7 +53,7 @@ class ShapeActionRotate {
     }
 }
 
-export class Shape {
+export class Shape extends events.EventEmitter {
 
     //------Members------//
 
@@ -90,8 +91,12 @@ export class Shape {
     //------Constructor------//
     
     constructor(cells: Cell[], position: Vector2, color: number, origin: Vector2 = new Vector2(0.5, 0.5)) {
+        super();
         this._cells = cells;
-        this._cells.forEach(cell => cell.shape = this);
+        this._cells.forEach(cell => {
+            cell.on('move', () => this.emit('change'));
+            cell.shape = this;
+        });
         this._position = position;
         this._color = color;
         this._origin = origin;
@@ -101,6 +106,7 @@ export class Shape {
 
     public do(actionName: string) {
         this._actions.find(action => action.name === actionName).do(this);
+        this.emit(actionName);
     }
 
     public removeCell(cell: Cell) {
@@ -108,6 +114,10 @@ export class Shape {
 
         if (index > -1) {
             this._cells.splice(index, 1);
+
+            if(this._cells.length === 0) {
+                this.emit('empty');
+            }
         }
     }
 
