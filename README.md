@@ -14,10 +14,9 @@
 [Play here!](https://ymaril.github.io/Tetris.ts/)
 
 
-<img width="300" src="https://i.ibb.co/hm91jYX/Screen-Shot-2019-02-02-at-12-48-04.png">
-<img width="300" src="https://i.ibb.co/DVLbXJw/Screen-Shot-2019-02-02-at-12-50-24.png">
-<img width="300" src="https://i.ibb.co/Ks01fdj/Screen-Shot-2019-02-02-at-12-51-12.png">
-
+[1](https://github.com/Ymaril/Tetris.ts/blob/master/screenshots/1.png?raw=true)
+[2](https://github.com/Ymaril/Tetris.ts/blob/master/screenshots/2.png?raw=true)
+[3](https://github.com/Ymaril/Tetris.ts/blob/master/screenshots/3.png?raw=true)
 
 ## Development
 
