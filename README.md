@@ -13,10 +13,10 @@
 ## Demo
 [Play here!](https://ymaril.github.io/Tetris.ts/)
 
-
-[1](https://github.com/Ymaril/Tetris.ts/blob/master/screenshots/1.png?raw=true)
-[2](https://github.com/Ymaril/Tetris.ts/blob/master/screenshots/2.png?raw=true)
-[3](https://github.com/Ymaril/Tetris.ts/blob/master/screenshots/3.png?raw=true)
+## Screenshots
+![1](https://github.com/Ymaril/Tetris.ts/blob/master/screenshots/1.png?raw=true)
+![2](https://github.com/Ymaril/Tetris.ts/blob/master/screenshots/2.png?raw=true)
+![3](https://github.com/Ymaril/Tetris.ts/blob/master/screenshots/3.png?raw=true)
 
 ## Development
 
